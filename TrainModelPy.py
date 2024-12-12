@@ -1,9 +1,12 @@
 import pickle
 import matplotlib.pyplot as plt
+import numpy as np
 import math
 import random
 import csv
+from datetime import datetime
 from sklearn.metrics import precision_score, recall_score, f1_score
+import matplotlib.dates as mdates
 
 # Функция для нормализации данных
 def normalize_data_with_min_max(data, min_val, max_val):
@@ -17,15 +20,16 @@ with open(input_file, 'r') as file:
     reader = csv.DictReader(file)
     for row in reader:
         data.append({
-            'Time': row['Time'],
+            'Time': datetime.strptime(row['Time'], '%Y-%m-%d %H:%M:%S'),
             'Temperature': float(row['Temperature']),
             'Pressure': float(row['Pressure']),
             'Class': int(row['Class'])
         })
 
-# Извлечение значений температуры и давления
+# Извлечение значений температуры, давления и времени
 temperature_values = [row['Temperature'] for row in data]
 pressure_values = [row['Pressure'] for row in data]
+time_values = [row['Time'] for row in data]
 
 # Нахождение минимальных и максимальных значений
 print("Calculating min and max values...")
@@ -36,13 +40,57 @@ min_max_values = {
 print(f"Temperature: Min = {min_max_values['Temperature'][0]}, Max = {min_max_values['Temperature'][1]}")
 print(f"Pressure: Min = {min_max_values['Pressure'][0]}, Max = {min_max_values['Pressure'][1]}")
 
+# Построение графиков до нормализации
+plt.figure(figsize=(14, 12))
+plt.subplot(2, 2, 1)
+plt.scatter(time_values, temperature_values, c='blue', s=10)  # Установлен размер точек
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=2))
+plt.xticks(rotation=45)
+plt.xlabel('Time')
+plt.ylabel('Temperature')
+plt.title('Original Temperature')
+
+plt.subplot(2, 2, 2)
+plt.scatter(time_values, pressure_values, c='green', s=10)  # Установлен размер точек
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=2))
+plt.xticks(rotation=45)
+plt.xlabel('Time')
+plt.ylabel('Pressure')
+plt.title('Original Pressure')
+
 # Нормализация данных
 print("Normalizing data...")
-for row in data:
-    row['Temperature'] = (row['Temperature'] - min_max_values['Temperature'][0]) / (
-            min_max_values['Temperature'][1] - min_max_values['Temperature'][0])
-    row['Pressure'] = (row['Pressure'] - min_max_values['Pressure'][0]) / (
-            min_max_values['Pressure'][1] - min_max_values['Pressure'][0])
+normalized_temperature = normalize_data_with_min_max(temperature_values, min_max_values['Temperature'][0], min_max_values['Temperature'][1])
+normalized_pressure = normalize_data_with_min_max(pressure_values, min_max_values['Pressure'][0], min_max_values['Pressure'][1])
+
+for i, row in enumerate(data):
+    row['Temperature'] = normalized_temperature[i]
+    row['Pressure'] = normalized_pressure[i]
+
+# Построение графиков после нормализации
+plt.subplot(2, 2, 3)
+plt.scatter(time_values, normalized_temperature, c='red', s=10)  # Установлен размер точек
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=2))
+plt.xticks(rotation=45)
+plt.xlabel('Time')
+plt.ylabel('Normalized Temperature')
+plt.title('Normalized Temperature')
+
+plt.subplot(2, 2, 4)
+plt.scatter(time_values, normalized_pressure, c='purple', s=10)  # Установлен размер точек
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=2))
+plt.xticks(rotation=45)
+plt.xlabel('Time')
+plt.ylabel('Normalized Pressure')
+plt.title('Normalized Pressure')
+
+plt.tight_layout()
+plt.savefig('data/normalization_plots.png')
+plt.show()
 
 # Добавление полиномиальных признаков
 print("Adding polynomial features...")
@@ -117,19 +165,41 @@ def train_logistic_regression(X_train, y_train, learning_rate, iterations, lambd
 learning_rate = 0.003
 iterations = 5000
 lambda_reg = 0.01
-class_weights = {0: 5.0, 1: 1.0}
+class_weights = {0: 5.0, 1: 2.0}  # Увеличен вес класса 1 для повышения Recall
 
 weights, bias, loss_history = train_logistic_regression(X_train, y_train, learning_rate, iterations, lambda_reg, class_weights)
 
 # Оценка модели
+print("Generating classification plot...")
 def predict(X, weights, bias):
     def sigmoid(z):
         return 1 / (1 + math.exp(-z))
 
-    return [1 if sigmoid(sum(weights[j] * x[j] for j in range(len(weights))) + bias) > 0.5 else 0 for x in X]
+    predictions = []
+    for x in X:
+        z = sum(weights[j] * x[j] for j in range(len(weights))) + bias
+        predictions.append(sigmoid(z))
+    return predictions
 
-y_pred = predict(X_test, weights, bias)
-accuracy, precision, recall, f1 = calculate_metrics(y_test, y_pred)
+# Построение графика классификации
+def plot_classification(X_test, predictions):
+    plt.figure(figsize=(10, 6))
+    scatter = plt.scatter(
+        [x[0] for x in X_test],
+        [x[1] for x in X_test],
+        c=predictions, cmap='viridis', s=20  # Установлен размер точек, убрана обводка
+    )
+    plt.colorbar(scatter, label='Predicted Class (0: Normal, 1: Critical)')
+    plt.xlabel('Normalized Temperature')
+    plt.ylabel('Normalized Pressure')
+    plt.title('Logistic Regression Classification')
+    plt.show()
+
+predictions = predict(X_test, weights, bias)
+plot_classification(X_test, predictions)
+
+binary_predictions = [1 if p > 0.5 else 0 for p in predictions]
+accuracy, precision, recall, f1 = calculate_metrics(y_test, binary_predictions)
 
 print(f"\nAccuracy: {accuracy:.2f}")
 print(f"Precision: {precision:.2f}, Recall: {recall:.2f}, F1-Score: {f1:.2f}")
@@ -146,7 +216,7 @@ plt.show()
 
 # Сохранение модели
 print("Saving the trained model...")
-with open('data/trained_model.pkl', 'wb') as model_file:
+with open('data/trained_model_py.pkl', 'wb') as model_file:
     pickle.dump({'weights': weights, 'bias': bias}, model_file)
 
 with open('data/min_max_values.pkl', 'wb') as min_max_file:

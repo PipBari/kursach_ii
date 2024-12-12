@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Прогноз состояния реактора (с библиотеками)</title>
+    <title>Прогноз состояния реактора (без библиотек)</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -44,13 +44,13 @@
             padding: 12px;
             font-size: 16px;
             color: #fff;
-            background-color: #007BFF;
+            background-color: #28a745;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #218838;
         }
         a {
             display: block;
@@ -79,15 +79,15 @@
 </head>
 <body>
     <div class="container">
-        <h1>Прогноз состояния реактора (с библиотеками)</h1>
-        <form action="/" method="post">
+        <h1>Прогноз состояния реактора (без библиотек)</h1>
+        <form action="/model-data" method="post">
             <label for="temperature">Температура:</label>
             <input type="number" step="0.01" id="temperature" name="temperature" required>
             <label for="pressure">Давление:</label>
             <input type="number" step="0.01" id="pressure" name="pressure" required>
             <button type="submit">Отправить данные</button>
         </form>
-        <a href="/model-data">Перейти к модели без библиотек</a>
+        <a href="/">Перейти к модели с библиотеками</a>
         {% if result %}
         <div class="result {% if 'Error' in result %}error{% endif %}">
             <h2>Результат: {{ result }}</h2>

@@ -1,13 +1,12 @@
 import pickle
-
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
-
 from sklearn.preprocessing import MinMaxScaler  # Использование встроенной нормализации
+import matplotlib.dates as mdates
 
 # Чтение данных с классами
 print("Reading input data...")
@@ -16,6 +15,10 @@ data = pd.read_csv(input_file)
 
 # Сохранение копии исходных данных для графиков
 original_data = data.copy()
+
+# Преобразование столбца 'Time' в формат даты
+data['Time'] = pd.to_datetime(data['Time'])
+original_data['Time'] = pd.to_datetime(original_data['Time'])
 
 # Вывод минимальных и максимальных значений температуры и давления
 print("Calculating min and max values...")
@@ -53,6 +56,9 @@ plt.scatter(original_data['Time'], original_data['Temperature'], color='blue', s
 plt.title('Original Temperature')
 plt.xlabel('Time')
 plt.ylabel('Temperature')
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=2))
+plt.xticks(rotation=45)
 
 # Исходные данные (давление)
 plt.subplot(2, 2, 2)
@@ -60,6 +66,9 @@ plt.scatter(original_data['Time'], original_data['Pressure'], color='green', s=1
 plt.title('Original Pressure')
 plt.xlabel('Time')
 plt.ylabel('Pressure')
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=2))
+plt.xticks(rotation=45)
 
 # Нормализованные данные (температура)
 plt.subplot(2, 2, 3)
@@ -67,6 +76,9 @@ plt.scatter(data['Time'], data['Temperature'], color='red', s=10)
 plt.title('Normalized Temperature')
 plt.xlabel('Time')
 plt.ylabel('Temperature')
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=2))
+plt.xticks(rotation=45)
 
 # Нормализованные данные (давление)
 plt.subplot(2, 2, 4)
@@ -74,6 +86,9 @@ plt.scatter(data['Time'], data['Pressure'], color='purple', s=10)
 plt.title('Normalized Pressure')
 plt.xlabel('Time')
 plt.ylabel('Pressure')
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=2))
+plt.xticks(rotation=45)
 
 plt.tight_layout()
 plt.savefig('data/normalized_data_plot.png')
