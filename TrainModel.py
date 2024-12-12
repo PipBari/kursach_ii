@@ -7,31 +7,27 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 
-from Normalize import normalize_data_with_min_max  # Импорт функции нормализации
+from sklearn.preprocessing import MinMaxScaler  # Использование встроенной нормализации
 
-# Чтение исходных данных
+# Чтение данных с классами
 print("Reading input data...")
-input_file = 'data/synthetic_data.csv'
+input_file = 'data/synthetic_data_with_labels.csv'
 data = pd.read_csv(input_file)
 
 # Сохранение копии исходных данных для графиков
 original_data = data.copy()
 
-# Определение минимальных и максимальных значений для нормализации
-print("Calculating min and max for normalization...")
-min_max_values = {
-    'Temperature': (data['Temperature'].min(), data['Temperature'].max()),
-    'Pressure': (data['Pressure'].min(), data['Pressure'].max())
-}
-print(f"Min/Max values for normalization: {min_max_values}")
+# Вывод минимальных и максимальных значений температуры и давления
+print("Calculating min and max values...")
+min_temp, max_temp = data['Temperature'].min(), data['Temperature'].max()
+min_pressure, max_pressure = data['Pressure'].min(), data['Pressure'].max()
+print(f"Temperature: Min = {min_temp}, Max = {max_temp}")
+print(f"Pressure: Min = {min_pressure}, Max = {max_pressure}")
 
-# Выполнение нормализации
+# Нормализация данных (исключая класс)
 print("Normalizing data...")
-data = normalize_data_with_min_max(data, min_max_values)
-
-# Определение меток классов: критическое состояние при температуре > 0.8
-print("Defining class labels...")
-data['Class'] = (data['Temperature'] > 0.8).astype(int)
+scaler = MinMaxScaler()
+data[['Temperature', 'Pressure']] = scaler.fit_transform(data[['Temperature', 'Pressure']])
 
 # Балансировка классов через oversampling
 print("Balancing classes...")
@@ -91,7 +87,7 @@ y = balanced_data['Class']
 print("Splitting data into training and testing sets...")
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-# Обучение модели логистической регрессии с учётом дисбаланса классов
+# Обучение модели логистической регрессии
 print("Training logistic regression model...")
 model = LogisticRegression(C=1.0, max_iter=200, solver='lbfgs', random_state=42, class_weight='balanced', verbose=1)
 model.fit(X_train, y_train)
@@ -128,7 +124,7 @@ print("Saving the trained model and normalization parameters...")
 with open('data/trained_model.pkl', 'wb') as model_file:
     pickle.dump(model, model_file)
 
-with open('data/min_max_values.pkl', 'wb') as min_max_file:
-    pickle.dump(min_max_values, min_max_file)
+with open('data/scaler.pkl', 'wb') as scaler_file:
+    pickle.dump(scaler, scaler_file)
 
 print("Model and normalization parameters saved successfully.")
